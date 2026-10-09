@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tabela-Verdade: tabelas, equivalências e simplificação de expressões lógicas</title>
+  <meta name="description" content="Monte a tabela-verdade de qualquer expressão lógica, classifique em tautologia, contradição ou contingência, teste equivalências e simplifique com Quine-McCluskey, mapa de Karnaugh e circuito.">
+  <meta name="theme-color" content="#0e7490">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔣</text></svg>">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Tabela-Verdade</h1>
+    <p class="lead">Tabelas-verdade, equivalências e simplificação de expressões lógicas passo a passo: formas canônicas, Quine-McCluskey, mapa de Karnaugh e circuito.</p>
+  </header>
+
+  <main>
+    <section class="card" aria-labelledby="t-expr">
+      <h2 id="t-expr">Expressão</h2>
+      <label for="expr">Digite a expressão lógica</label>
+      <div class="expr-row">
+        <input id="expr" class="expr-input" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="expr-status">
+        <button type="button" class="btn secondary" id="copy-link">Copiar link</button>
+      </div>
+      <div class="keypad" role="group" aria-label="Inserir símbolo na expressão">
+        <button type="button" data-insert="¬" title="negação (não)" aria-label="negação">¬</button>
+        <button type="button" data-insert=" ∧ " title="conjunção (e)" aria-label="conjunção">∧</button>
+        <button type="button" data-insert=" ∨ " title="disjunção (ou)" aria-label="disjunção">∨</button>
+        <button type="button" data-insert=" ⊕ " title="ou exclusivo" aria-label="ou exclusivo">⊕</button>
+        <button type="button" data-insert=" → " title="condicional (se... então)" aria-label="condicional">→</button>
+        <button type="button" data-insert=" ↔ " title="bicondicional (se e somente se)" aria-label="bicondicional">↔</button>
+        <button type="button" data-insert="(" title="abre parêntese" aria-label="abre parêntese">(</button>
+        <button type="button" data-insert=")" title="fecha parêntese" aria-label="fecha parêntese">)</button>
+      </div>
+
+      <div class="options">
+        <label class="check"><input type="checkbox" id="single-letter"> Variáveis de uma letra (AB vira A·B)</label>
+        <label>Valores
+          <select id="opt-values">
+            <option value="VF">V e F</option>
+            <option value="10">1 e 0</option>
+          </select>
+        </label>
+        <label>Primeira linha
+          <select id="opt-order">
+            <option value="v">tudo verdadeiro</option>
+            <option value="f">tudo falso (ordem dos mintermos)</option>
+          </select>
+        </label>
+        <label>Notação dos resultados
+          <select id="opt-style">
+            <option value="logica">lógica (¬ ∧ ∨)</option>
+            <option value="digital">eletrônica digital (A' · +)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-steps" checked> Colunas intermediárias</label>
+      </div>
+
+      <div id="expr-status" class="status-box" aria-live="polite"></div>
+
+      <p class="muted small">Exemplos:</p>
+      <div class="examples" id="examples"></div>
+
+      <details class="help">
+        <summary>Notações aceitas e precedência</summary>
+        <div class="table-wrap">
+          <table class="prec">
+            <thead><tr><th scope="col">Ordem</th><th scope="col">Operador</th><th scope="col">Você pode digitar</th></tr></thead>
+            <tbody>
+              <tr><td>1 (liga mais forte)</td><td>negação</td><td><code>¬p</code> <code>~p</code> <code>!p</code> <code>não p</code> <code>nao p</code> <code>p'</code></td></tr>
+              <tr><td>2</td><td>conjunção</td><td><code>p ∧ q</code> <code>p &amp; q</code> <code>p &amp;&amp; q</code> <code>p e q</code> <code>p.q</code> <code>p·q</code> <code>p*q</code> <code>p q</code></td></tr>
+              <tr><td>3</td><td>ou exclusivo</td><td><code>p ⊕ q</code> <code>p ⊻ q</code> <code>p xor q</code></td></tr>
+              <tr><td>4</td><td>disjunção</td><td><code>p ∨ q</code> <code>p | q</code> <code>p || q</code> <code>p ou q</code> <code>p + q</code></td></tr>
+              <tr><td>5</td><td>condicional</td><td><code>p → q</code> <code>p -&gt; q</code> <code>p =&gt; q</code> <code>se p então q</code></td></tr>
+              <tr><td>6 (liga mais fraco)</td><td>bicondicional</td><td><code>p ↔ q</code> <code>p &lt;-&gt; q</code> <code>p &lt;=&gt; q</code> <code>p sse q</code> <code>p se e somente se q</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="small">
+          <li>Constantes: <code>1</code>, <code>0</code>, <code>⊤</code>, <code>⊥</code>, <code>verdadeiro</code> e <code>falso</code>. As letras V e F são variáveis comuns.</li>
+          <li>O condicional associa à direita: <code>p → q → r</code> é <code>p → (q → r)</code>. Os outros operadores associam à esquerda.</li>
+          <li>Palavras-chave vão em minúsculas (<code>e</code>, <code>ou</code>, <code>não</code>, <code>xor</code>, <code>então</code>, <code>sse</code>). Por isso <code>E</code> maiúsculo pode ser nome de variável.</li>
+          <li>Dois operandos lado a lado são uma conjunção: <code>p q</code> é <code>p ∧ q</code> e <code>A'B</code> é <code>A' ∧ B</code>. Com nomes de várias letras, <code>AB</code> é uma variável só; marque "variáveis de uma letra" para ler como <code>A·B</code>.</li>
+          <li>Alguns livros dão a mesma precedência para ∧ e ∨. Na dúvida, use parênteses: a linha "Lida como" mostra exatamente como a expressão foi entendida.</li>
+          <li>O símbolo <code>^</code> não é aceito porque é ambíguo (lembra ∧, mas em programação é ou exclusivo).</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="t-table">
+      <div class="card-head">
+        <h2 id="t-table">Tabela-verdade</h2>
+        <button type="button" class="btn secondary" id="csv">Baixar CSV</button>
+      </div>
+      <div id="classification" class="classification" aria-live="polite"></div>
+      <div class="table-wrap tall" id="table-wrap" tabindex="0" role="region" aria-label="Tabela-verdade (role para ver tudo)"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-canon">
+      <h2 id="t-canon">Formas normais canônicas</h2>
+      <div id="canonical"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-min">
+      <h2 id="t-min">Simplificação por Quine-McCluskey</h2>
+      <label for="dont-care">Combinações irrelevantes (don't care), por número de linha</label>
+      <input id="dont-care" type="text" placeholder="ex.: 10, 11, 12-15" spellcheck="false" autocomplete="off" aria-describedby="dc-help">
+      <p id="dc-help" class="muted small">Linhas que nunca acontecem (como os códigos 10 a 15 em BCD). A simplificação pode tratá-las como 0 ou 1, o que for mais vantajoso.</p>
+      <div id="minimization"></div>
+      <details class="steps" id="qm-steps-box">
+        <summary>Ver o passo a passo do método</summary>
+        <div id="qm-steps"></div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="t-kmap">
+      <h2 id="t-kmap">Mapa de Karnaugh</h2>
+      <div class="segmented" role="radiogroup" aria-label="O que agrupar no mapa">
+        <label><input type="radio" name="kmode" value="sop" checked> Agrupar os 1s (soma de produtos)</label>
+        <label><input type="radio" name="kmode" value="pos"> Agrupar os 0s (produto de somas)</label>
+      </div>
+      <div id="kmap"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-circ">
+      <div class="card-head">
+        <h2 id="t-circ">Circuito lógico</h2>
+        <button type="button" class="btn secondary" id="svg-download">Baixar SVG</button>
+      </div>
+      <p class="muted small">Montado a partir da soma de produtos mínima: portas NÃO para os complementos, uma porta E por produto e uma porta OU juntando tudo.</p>
+      <div id="circuit" class="circuit" tabindex="0" role="region" aria-label="Circuito lógico (role para ver tudo)"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-eq">
+      <h2 id="t-eq">Equivalência entre duas expressões</h2>
+      <div class="eq-grid">
+        <div>
+          <label for="eq-a">Expressão A</label>
+          <input id="eq-a" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
+        </div>
+        <div>
+          <label for="eq-b">Expressão B</label>
+          <input id="eq-b" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="btn secondary" id="eq-use-main">Usar a expressão principal em A</button>
+        <button type="button" class="btn secondary" data-eq="p → q|¬q → ¬p">Contrapositiva</button>
+        <button type="button" class="btn secondary" data-eq="p → q|q → p">Recíproca</button>
+        <button type="button" class="btn secondary" data-eq="¬(p ∨ q)|¬p ∧ ¬q">De Morgan</button>
+        <button type="button" class="btn secondary" data-eq="p ∧ (q ∨ r)|(p ∧ q) ∨ (p ∧ r)">Distributiva</button>
+      </div>
+      <div id="equivalence" aria-live="polite"></div>
+    </section>
+
+    <section class="card tips" aria-labelledby="t-tips">
+      <h2 id="t-tips">Para lembrar</h2>
+      <ul>
+        <li><strong>Condicional:</strong> <code>p → q</code> só é falso quando <code>p</code> é verdadeiro e <code>q</code> é falso. Se o antecedente é falso, o condicional é verdadeiro.</li>
+        <li><strong>Equivalência:</strong> <code>A</code> e <code>B</code> são equivalentes quando <code>A ↔ B</code> é uma tautologia, ou seja, têm a mesma coluna na tabela-verdade.</li>
+        <li><strong>Mintermo e maxtermo:</strong> a linha 5 (101 em binário) dá o mintermo <code>A ∧ ¬B ∧ C</code>, verdadeiro só nela, e o maxtermo <code>¬A ∨ B ∨ ¬C</code>, falso só nela.</li>
+        <li><strong>Karnaugh:</strong> grupos têm 1, 2, 4, 8 ou 16 células, são retangulares e podem atravessar as bordas, porque as colunas seguem o código Gray (00, 01, 11, 10).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Tudo roda no seu navegador. Código aberto no <a href="https://github.com/micdog22/tabela-verdade">GitHub</a> · Licença MIT</p>
+  </footer>
+</body>
+</html>

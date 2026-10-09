@@ -1,0 +1,11 @@
+{
+  "name": "tabela-verdade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tabelas-verdade, equivalências e simplificação de expressões lógicas passo a passo, com Quine-McCluskey, mapa de Karnaugh e circuito.",
+  "type": "module",
+  "scripts": { "test": "node --test" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/micdog22/tabela-verdade.git" },
+  "homepage": "https://micdog22.github.io/tabela-verdade/"
+}
